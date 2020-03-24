@@ -678,6 +678,7 @@ defmodule Phoenix.HTML.Form do
   def password_input(form, field, opts \\ []) do
     opts =
       opts
+      |> update_class_if_errors(form.errors, field)
       |> Keyword.put_new(:type, "password")
       |> Keyword.put_new(:id, input_id(form, field))
       |> Keyword.put_new(:name, input_name(form, field))
@@ -819,7 +820,7 @@ defmodule Phoenix.HTML.Form do
        when is_list(opts) and (is_atom(field) or is_binary(field)) do
     opts =
       opts
-      |> update_class_if_errors(form.errors)
+      |> update_class_if_errors(form.errors, field)
       |> Keyword.put_new(:type, type)
       |> Keyword.put_new(:id, input_id(form, field))
       |> Keyword.put_new(:name, input_name(form, field))
@@ -827,23 +828,6 @@ defmodule Phoenix.HTML.Form do
       |> Keyword.update!(:value, &maybe_html_escape/1)
 
     tag(:input, opts)
-  end
-
-  defp update_class_if_errors(opts, []), do
-    {error_class, opts} = Keyword.pop(opts, :error_class)
-    opts
-  end
-  defp update_class_if_errors(opts, _form_errors) do
-    {error_class, opts} = Keyword.pop(opts, :error_class)
-    join_error_class_to_class(opts, Keyword.get(opts, :class), error_class)
-  end
-
-  defp join_error_class_to_class(opts, nil, nil), do: opts
-  defp join_error_class_to_class(opts, nil, error_class) do
-    Keyword.put(opts, :class, error_class)
-  end
-  defp join_error_class_to_class(opts, class, error_class) do
-    Keyword.put(opts, :class, Enum.join([class, error_class], " ")) 
   end
 
   defp maybe_html_escape(nil), do: nil
@@ -877,6 +861,7 @@ defmodule Phoenix.HTML.Form do
   def textarea(form, field, opts \\ []) do
     opts =
       opts
+      |> update_class_if_errors(form.errors, field)
       |> Keyword.put_new(:id, input_id(form, field))
       |> Keyword.put_new(:name, input_name(form, field))
 
@@ -901,6 +886,7 @@ defmodule Phoenix.HTML.Form do
 
     opts =
       opts
+      |> update_class_if_errors(form.errors, field)
       |> Keyword.put_new(:type, :file)
       |> Keyword.put_new(:id, input_id(form, field))
       |> Keyword.put_new(:name, input_name(form, field))
@@ -1004,6 +990,7 @@ defmodule Phoenix.HTML.Form do
 
     opts =
       opts
+      |> update_class_if_errors(form.errors, field)
       |> Keyword.put_new(:type, "radio")
       |> Keyword.put_new(:id, input_id(form, field, escaped_value))
       |> Keyword.put_new(:name, input_name(form, field))
@@ -1057,6 +1044,7 @@ defmodule Phoenix.HTML.Form do
   def checkbox(form, field, opts \\ []) do
     opts =
       opts
+      |> update_class_if_errors(form.errors, field)
       |> Keyword.put_new(:type, "checkbox")
       |> Keyword.put_new(:id, input_id(form, field))
       |> Keyword.put_new(:name, input_name(form, field))
@@ -1194,6 +1182,7 @@ defmodule Phoenix.HTML.Form do
 
     opts =
       opts
+      |> update_class_if_errors(form.errors, field)
       |> Keyword.put_new(:id, input_id(form, field))
       |> Keyword.put_new(:name, input_name(form, field))
 
@@ -1333,6 +1322,7 @@ defmodule Phoenix.HTML.Form do
 
     opts =
       opts
+      |> update_class_if_errors(form.errors, field)
       |> Keyword.put_new(:id, input_id(form, field))
       |> Keyword.put_new(:name, input_name(form, field) <> "[]")
       |> Keyword.put_new(:multiple, "")
@@ -1749,6 +1739,29 @@ defmodule Phoenix.HTML.Form do
   # Normalize field name to string version
   defp field_to_string(field) when is_atom(field), do: Atom.to_string(field)
   defp field_to_string(field) when is_binary(field), do: field
+
+  # Add error class to class option if there is an error
+  defp update_class_if_errors(opts, [], _field) do
+    {_error_class, opts} = Keyword.pop(opts, :error_class)
+    opts
+  end
+  defp update_class_if_errors(opts, form_errors, field) do
+    {error_class, opts} = Keyword.pop(opts, :error_class)
+    if Keyword.has_key?(form_errors, field) do
+      join_error_class(opts, Keyword.get(opts, :class), error_class)
+    else
+      opts
+    end
+  end
+
+  # Join the error_class to the class option
+  defp join_error_class(opts, nil, nil), do: opts
+  defp join_error_class(opts, nil, error_class) do
+    Keyword.put(opts, :class, error_class)
+  end
+  defp join_error_class(opts, klass, error_class) do
+    Keyword.put(opts, :class, Enum.join([klass, error_class], " "))
+  end
 
   @doc false
   @deprecated "Use input_value/3 instead"
